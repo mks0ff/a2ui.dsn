@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:dsn:catalog:v1",
+  "catalogId": "urn:dsn:catalog:v1",
+  "protocolVersion": "1.0",
+  "title": "DSN query-backed analytics",
+  "components": {
+    "DSNResult": {
+      "type": "object",
+      "description": "Trusted analytics card bound to an existing retained result. Never invent data.",
+      "properties": {
+        "component": {"const": "DSNResult"},
+        "resultId": {"$ref": "common_types.json#/$defs/DynamicString"}
+      },
+      "required": ["component", "resultId"],
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "anyComponent": {"oneOf": [{"$ref": "#/components/DSNResult"}]},
+    "anyFunction": {"not": {}}
+  }
+}

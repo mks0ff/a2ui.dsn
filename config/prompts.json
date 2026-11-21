@@ -1,0 +1,41 @@
+[
+  {
+    "id": "payroll-trend",
+    "label": "Evolution de la masse salariale",
+    "template": "Montre l'evolution mensuelle de la masse salariale brute sur {periode}, pour {etablissements}.",
+    "parameters": [
+      {"id": "periode", "label": "Periode", "default": "les 12 derniers mois complets disponibles"},
+      {"id": "etablissements", "label": "Etablissements", "default": "tous les etablissements"}
+    ],
+    "category": "Remuneration",
+    "visualization": "line",
+    "order": 1,
+    "enabled": true
+  },
+  {
+    "id": "headcount-establishments",
+    "label": "Comparer les effectifs",
+    "template": "Compare l'effectif en fin de mois par etablissement pour {mois}, sur {etablissements}.",
+    "parameters": [
+      {"id": "mois", "label": "Mois de reference", "default": "le dernier mois complet disponible"},
+      {"id": "etablissements", "label": "Etablissements", "default": "tous les etablissements"}
+    ],
+    "category": "Emploi",
+    "visualization": "bar",
+    "order": 2,
+    "enabled": true
+  },
+  {
+    "id": "contributions",
+    "label": "Comprendre les cotisations",
+    "template": "Compare les cotisations salariales et patronales et leur total explicite pour {periode}, sur {etablissements}.",
+    "parameters": [
+      {"id": "periode", "label": "Periode", "default": "le dernier mois complet disponible"},
+      {"id": "etablissements", "label": "Etablissements", "default": "tous les etablissements"}
+    ],
+    "category": "Protection sociale",
+    "visualization": "bar",
+    "order": 3,
+    "enabled": true
+  }
+]
