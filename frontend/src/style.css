@@ -15,9 +15,12 @@
   --dsn-subtle-background: #f3f3f5;
   --dsn-border-color: #e4e4e7;
   --dsn-muted-text: #63636e;
-  --dsn-chart-1: #2563eb;
-  --dsn-chart-2: #7c3aed;
-  --dsn-chart-3: #0f766e;
+  --dsn-card-radius: 18px;
+  --dsn-card-shadow: 0 1px 3px rgb(24 24 27 / 6%), 0 1px 2px rgb(24 24 27 / 3%);
+  --dsn-chart-1: #7c4fe0;
+  --dsn-chart-2: #0891b2;
+  --dsn-chart-3: #059669;
+  --dsn-chart-grid-color: #f0f0f3;
   font-family: var(--dsn-font-family);
   color: var(--copilot-kit-secondary-contrast-color);
   background: var(--copilot-kit-background-color);
@@ -125,7 +128,12 @@ select { max-width: 100%; min-height: 34px; padding: 6px 8px; color: var(--dsn-m
 .user-question p { margin: 0; font-size: 14px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
 .answer-text, .pending { margin: 22px 0; font-size: 14px; line-height: 1.8; }
 .pending { color: var(--dsn-muted-text); }
-.result-card { min-width: 0; margin-top: 18px; padding: 24px; background: white; border: 1px solid var(--dsn-border-color); border-radius: 16px; box-shadow: var(--copilot-kit-shadow-sm); }
+.interaction-hint, .followup-source { color: var(--dsn-muted-text); font-size: 12px; line-height: 1.7; }
+.followup-source { margin: 10px 18px 0; overflow-wrap: anywhere; }
+.drilldown-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.drilldown-link { padding: 6px 9px; color: var(--dsn-chart-1); background: var(--dsn-subtle-background); border: 1px solid var(--dsn-border-color); border-radius: 7px; font-size: 12px; text-align: left; }
+.drilldown-link:hover { border-color: var(--dsn-chart-1); text-decoration: underline; }
+.result-card { min-width: 0; margin-top: 18px; padding: 24px; background: white; border: 1px solid var(--dsn-border-color); border-radius: var(--dsn-card-radius); box-shadow: var(--dsn-card-shadow); }
 .card-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .card-header > div { min-width: 0; }
 .eyebrow { color: var(--dsn-muted-text); font-size: 10px; font-weight: 600; letter-spacing: 1px; }
@@ -133,14 +141,19 @@ select { max-width: 100%; min-height: 34px; padding: 6px 8px; color: var(--dsn-m
 h2 { margin: 10px 0; font-size: 22px; font-weight: 600; line-height: 1.4; letter-spacing: -.6px; overflow-wrap: anywhere; }
 .scope { display: flex; flex-wrap: wrap; gap: 7px; margin: 14px 0 20px; }
 .scope span { padding: 6px 9px; color: var(--dsn-muted-text); background: var(--dsn-subtle-background); border-radius: 7px; font-size: 10px; overflow-wrap: anywhere; }
+.plot-frame { overflow: hidden; background: white; border: 1px solid var(--dsn-border-color); border-radius: 14px; }
 .plot { width: 100%; height: 390px; }
 .kpi { padding: 28px 5px 35px; }
 .kpi > span { display: block; color: var(--dsn-muted-text); font-size: 13px; }
 .kpi strong { display: block; margin-top: 10px; font-size: clamp(30px, 5vw, 46px); font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -1.5px; overflow-wrap: anywhere; }
-.table-scroll { overflow-x: auto; max-height: 500px; }
+.table-frame { overflow: hidden; background: white; border: 1px solid var(--dsn-border-color); border-radius: 14px; }
+.table-scroll { overflow: auto; max-height: 500px; }
+.table-scroll:focus-visible { outline: 2px solid var(--dsn-chart-1); outline-offset: -3px; border-radius: 13px; }
 table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
-th { position: sticky; top: 0; color: var(--dsn-muted-text); background: var(--dsn-subtle-background); font-weight: 550; }
-th, td { padding: 12px; border-bottom: 1px solid var(--dsn-border-color); }
+th { position: sticky; top: 0; z-index: 1; color: var(--dsn-muted-text); background: #fafafa; font-weight: 500; }
+th, td { padding: 12px 16px; border-bottom: 1px solid var(--dsn-border-color); }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: #faf9fd; }
 .pagination { display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 16px; font-size: 11px; }
 .pagination span { margin-right: auto; color: var(--dsn-muted-text); }
 .pagination button { min-height: 36px; padding: 7px 10px; color: inherit; background: white; border: 1px solid var(--dsn-border-color); border-radius: 8px; }

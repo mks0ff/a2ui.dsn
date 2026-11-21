@@ -160,6 +160,15 @@ Compatible changes use the same retained result without a model call or new
 query. The complete table is always available through pagination.
 Incompatible choices explain the restriction instead of aggregating silently.
 
+For establishment comparisons, click a chart bar or an establishment ID in the
+table to prepare an **editable follow-up**. Charts also offer keyboard-accessible
+**Explorer SYN-EST-...** buttons. The draft asks for that establishment's monthly
+trend, using the original card's metric and ending month, over up to 12 available
+months. It selects **Courbe** and focuses the composer. Review or edit the question,
+then click **Analyser** to run a new guarded query and append another card.
+Clicking a result never runs SQL automatically; the original card is retained.
+Only recognized establishment IDs actually present in result rows are interactive.
+
 Default configurable limits:
 
 | Boundary | Limit |
@@ -202,6 +211,10 @@ an analysis; Shift+Enter inserts a newline. Suggestions remain editable and
 never execute automatically.
 
 Theme tokens live in `frontend\src\style.css`; charts read the same variables.
+Result cards use a shadcn/ui-style light treatment: 18px rounded white cards,
+soft shadows, rounded table/chart frames, and purple-led charts with rounded
+bar tops. Tables retain internal scrolling, sticky headers, and pagination.
+This styling uses the existing CSS and ECharts; no theme dependency is required.
 This is a visual adaptation, not a CopilotKit runtime or
 [playground catalog](https://a2ui.open.bot/catalog.json) integration. The bounded
 DSN catalog, Python ADK, BigQuery guardrails, and A2UI 1.0 rendering are unchanged.

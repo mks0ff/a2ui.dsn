@@ -224,6 +224,23 @@ required, retain the table and offer an explicit aggregation or filtering step.
 Changing the requested granularity requires user agreement; any new SQL remains
 subject to the existing query boundaries and execution-attempt limit.
 
+### Result exploration
+
+The trusted result component recognizes the three synthetic establishment IDs
+in returned rows, including aliased columns. Clicking an establishment's chart
+mark or table-cell button prepares an editable follow-up in the composer.
+Charts also expose equivalent keyboard-accessible establishment buttons.
+Unknown or ambiguous establishment values are not interactive.
+
+The follow-up explicitly names the original card's metric, selected establishment,
+and ending reference month, asking for its monthly trend over up to 12 available
+months. It does not depend on the most recent conversational scope, which may
+belong to another card. The default visualization is a line chart. Clicking
+only prepares and focuses this draft; the user must submit it with Analyser
+before the ordinary guarded analysis endpoint runs a new query and appends
+another card. The original card and its evidence remain unchanged. Exploration
+is unavailable while analysis or presentation switching is in progress.
+
 ### Conversation and results
 
 - Accept French and English questions; answer in French by default. Use French

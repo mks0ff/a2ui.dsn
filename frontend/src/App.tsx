@@ -1,8 +1,8 @@
-import {useEffect, useState, type FormEvent} from "react";
+import {useCallback, useEffect, useRef, useState, type FormEvent} from "react";
 import {z} from "zod";
 import {
   api, answerSchema, healthSchema, promptSchema, resolvePrompt, visualizationLabels,
-  type Answer, type SuggestedPrompt, type Visualization,
+  type Answer, type Card, type SuggestedPrompt, type Visualization,
 } from "./api";
 import {ResultCard} from "./ResultCard";
 
@@ -31,6 +31,8 @@ export default function App() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
+  const [followUpSource, setFollowUpSource] = useState("");
+  const questionInput = useRef<HTMLTextAreaElement>(null);
   const canSubmit = ready && !busy && !!question.trim() && !health?.missing.length;
 
   useEffect(() => {
@@ -44,6 +46,7 @@ export default function App() {
   }, []);
 
   function choose(prompt: SuggestedPrompt) {
+    setFollowUpSource("");
     const values = Object.fromEntries(prompt.parameters.map(parameter =>
       [parameter.id, parameter.default]));
     setSelected(prompt);
@@ -51,6 +54,28 @@ export default function App() {
     setQuestion(resolvePrompt(prompt, values));
     setVisualization(prompt.visualization);
   }
+
+  const explore = useCallback((card: Card, establishment: string) => {
+    const metrics: Record<string, string> = {
+      payroll: "la masse salariale brute",
+      headcount: "l'effectif en fin de mois (salaries distincts)",
+      contributions: "les cotisations salariales, patronales et leur total explicite",
+    };
+    const metric = metrics[card.evidence.scope.metric];
+    if (!metric) {
+      setError("Cette mesure ne permet pas de preparer une question de suivi.");
+      return;
+    }
+    setSelected(null);
+    setFollowUpSource(`${card.title} / ${establishment}`);
+    setQuestion(`Montre l'evolution mensuelle de ${metric} pour ${establishment} uniquement, ` +
+      `sur les 12 mois se terminant au mois ${card.evidence.scope.end_month.slice(0, 7)}, ` +
+      "dans la limite des mois disponibles.");
+    setVisualization("line");
+    setError("");
+    questionInput.current?.focus();
+    questionInput.current?.scrollIntoView?.({behavior: "smooth", block: "center"});
+  }, []);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -67,6 +92,7 @@ export default function App() {
       setMessages(previous => previous.map(item => item.id === id ? {...item, answer} : item));
       setQuestion("");
       setSelected(null);
+      setFollowUpSource("");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Analyse impossible.";
       setMessages(previous => previous.map(item => item.id === id ? {...item, error: message} : item));
@@ -81,6 +107,7 @@ export default function App() {
       await api("/session", {method: "POST"});
       setMessages([]);
       setSelected(null);
+      setFollowUpSource("");
       setQuestion("");
       setVisualization("auto");
     } catch (err) {
@@ -138,7 +165,8 @@ export default function App() {
               <p className="answer-text">{item.answer.text}</p>
               {item.answer.warnings.map((warning, index) =>
                 <p className="notice" key={index}>Tentative precedente : {warning.message}</p>)}
-              {item.answer.presentation && <ResultCard initial={item.answer.presentation} />}
+              {item.answer.presentation && <ResultCard initial={item.answer.presentation}
+                onExplore={explore} disabled={busy} />}
             </>}
             {!item.answer && !item.error && <p role="status" className="pending">
               L'agent examine la question et verifie les limites BigQuery...
@@ -146,10 +174,11 @@ export default function App() {
           </article>)}
         </section>
         <form className="composer" onSubmit={event => void submit(event)}>
-          <div className={selected ? "composer-heading" : "sr-only"}>
-            <label htmlFor="question">{selected ? "Apercu editable" : "Votre question"}</label>
-            {selected && <span>Aucune requete avant Analyser</span>}
+          <div className={selected || followUpSource ? "composer-heading" : "sr-only"}>
+            <label htmlFor="question">{selected || followUpSource ? "Apercu editable" : "Votre question"}</label>
+            {(selected || followUpSource) && <span>Aucune requete avant Analyser</span>}
           </div>
+          {followUpSource && <p className="followup-source" role="status">Suivi de : {followUpSource}</p>}
           {selected && <div className="parameters">
             {selected.parameters.map(parameter => <label key={parameter.id}>
               {parameter.label}<input value={parameters[parameter.id] ?? ""}
@@ -160,7 +189,7 @@ export default function App() {
                 }} />
             </label>)}
           </div>}
-          <textarea id="question" value={question} maxLength={4000} disabled={busy}
+          <textarea ref={questionInput} id="question" value={question} maxLength={4000} disabled={busy}
             placeholder="Posez une question, comme l'evolution de la masse salariale..."
             aria-describedby="composer-help"
             onKeyDown={event => {

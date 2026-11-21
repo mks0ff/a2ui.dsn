@@ -110,7 +110,78 @@ function presentation(visualization: Card["visualization"]): Presentation {
   };
 }
 
+function establishmentPresentation(): Presentation {
+  const result = presentation("table");
+  result.card.x = "etablissement";
+  result.card.columns.unshift({name: "etablissement", type: "STRING"});
+  result.card.rows = [{etablissement: "SYN-EST-01", brut: "123.45"}];
+  result.card.evidence.scope.end_month = "2025-03-01";
+  result.card.evidence.scope.start_month = "2025-03-01";
+  return result;
+}
+
+it("prepares an editable scoped follow-up and adds a second card only after confirmation", async () => {
+  const fetch = vi.fn((url: string, init?: RequestInit) => {
+    if (url === "/api/prompts") return respond([prompt]);
+    if (url === "/api/health") return respond({
+      status: "configured", missing: [],
+      limits: {rows: 10000, chart_points: 5000, bytes_billed: 104857600, sql_attempts: 2},
+    });
+    if (url === "/api/analyze") return respond({
+      text: "Resultat disponible.", status: "result", warnings: [],
+      presentation: establishmentPresentation(),
+    });
+    return respond({status: "ready"});
+  });
+  vi.stubGlobal("fetch", fetch);
+  const user = userEvent.setup();
+  render(<App />);
+  await screen.findByRole("button", {name: /Evolution de la masse salariale/});
+  await user.type(screen.getByLabelText("Votre question"), "Compare la masse salariale.");
+  await user.click(screen.getByRole("button", {name: "Analyser"}));
+  await user.click(await screen.findByRole("button", {name: "Explorer SYN-EST-01"}));
+  const draft = screen.getByLabelText("Apercu editable") as HTMLTextAreaElement;
+  expect(draft.value).toBe("Montre l'evolution mensuelle de la masse salariale brute " +
+    "pour SYN-EST-01 uniquement, sur les 12 mois se terminant au mois 2025-03, " +
+    "dans la limite des mois disponibles.");
+  expect(document.activeElement).toBe(draft);
+  expect((screen.getByLabelText("Visualisation") as HTMLSelectElement).value).toBe("line");
+  expect(fetch.mock.calls.filter(([url]) => url === "/api/analyze")).toHaveLength(1);
+  await user.type(draft, " Affiche les montants en euros.");
+  await user.click(screen.getByRole("button", {name: "Analyser"}));
+  await waitFor(() => expect(screen.getAllByRole("table")).toHaveLength(2));
+  const requests = fetch.mock.calls.filter(([url]) => url === "/api/analyze");
+  expect(requests).toHaveLength(2);
+  expect(JSON.parse(String(requests[1][1]?.body))).toEqual({
+    question: expect.stringContaining("2025-03, dans la limite des mois disponibles. Affiche les montants en euros."),
+    visualization: "line",
+  });
+});
+
 describe("real A2UI React rendering", () => {
+  it("uses the current paginated row for exploration and ignores unknown establishment IDs", async () => {
+    const result = establishmentPresentation();
+    result.card.row_count = 51;
+    result.card.rows.push({etablissement: "SYN-EST-99", brut: "100"});
+    vi.stubGlobal("fetch", vi.fn(() => respond({
+      rows: [{etablissement: "SYN-EST-03", brut: "300"}],
+    })));
+    const explore = vi.fn();
+    const user = userEvent.setup();
+    render(<ResultCard initial={result} onExplore={explore} />);
+    expect(screen.queryByRole("button", {name: "Explorer SYN-EST-99"})).toBeNull();
+    await user.click(screen.getByRole("button", {name: "Suivant"}));
+    await user.click(await screen.findByRole("button", {name: "Explorer SYN-EST-03"}));
+    expect(explore).toHaveBeenCalledWith(result.card, "SYN-EST-03");
+  });
+
+  it("does not allow exploration while an analysis is running", () => {
+    const explore = vi.fn();
+    render(<ResultCard initial={establishmentPresentation()} onExplore={explore} disabled />);
+    expect(screen.queryByRole("button", {name: "Explorer SYN-EST-01"})).toBeNull();
+    expect(explore).not.toHaveBeenCalled();
+  });
+
   it("renders query-bound tables and switches presentation without an agent turn", async () => {
     const fetch = vi.fn(() => respond(presentation("kpi")));
     vi.stubGlobal("fetch", fetch);
