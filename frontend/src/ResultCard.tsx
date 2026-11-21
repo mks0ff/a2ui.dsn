@@ -30,6 +30,10 @@ function Plot({card}: {card: Card}) {
   useEffect(() => {
     if (!element.current) return;
     const chart = echarts.init(element.current, undefined, {renderer: "canvas"});
+    const theme = getComputedStyle(element.current);
+    const token = (name: string) => theme.getPropertyValue(name).trim();
+    const textColor = token("--dsn-muted-text");
+    const borderColor = token("--dsn-border-color");
     const money = card.evidence.scope.metric !== "headcount";
     const labels = card.rows.map(row => card.x
       ? formatCell(row[card.x], card.columns.find(c => c.name === card.x)?.type ?? "STRING")
@@ -37,16 +41,26 @@ function Plot({card}: {card: Card}) {
     chart.setOption({
       animation: false,
       aria: {enabled: true, description: `${card.title}. Le tableau detaille est disponible.`},
-      color: ["#207363", "#ce8841", "#6775a2"],
-      legend: {bottom: card.rows.length > 50 ? 50 : 0},
+      color: ["--dsn-chart-1", "--dsn-chart-2", "--dsn-chart-3"].map(token),
+      textStyle: {fontFamily: token("--dsn-font-family"), color: textColor},
+      legend: {bottom: card.rows.length > 50 ? 50 : 0, textStyle: {color: textColor}},
       grid: {left: 100, right: 24, top: 30, bottom: card.rows.length > 50 ? 110 : 85},
       tooltip: {
         trigger: "axis",
         renderMode: "richText",
+        backgroundColor: token("--copilot-kit-secondary-color"),
+        borderColor,
+        textStyle: {color: token("--copilot-kit-secondary-contrast-color")},
         valueFormatter: (value: unknown) => formatCell(value, "NUMERIC", money),
       },
-      xAxis: {type: "category", data: labels, axisLabel: {hideOverlap: true}},
-      yAxis: {type: "value", axisLabel: {
+      xAxis: {
+        type: "category", data: labels,
+        axisLine: {lineStyle: {color: borderColor}},
+        axisTick: {lineStyle: {color: borderColor}},
+        axisLabel: {hideOverlap: true, color: textColor},
+      },
+      yAxis: {type: "value", splitLine: {lineStyle: {color: borderColor}}, axisLabel: {
+        color: textColor,
         formatter: (value: number) => new Intl.NumberFormat("fr-FR", {
           notation: "compact", ...(money ? {style: "currency", currency: "EUR"} : {}),
         }).format(value),

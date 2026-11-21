@@ -52,15 +52,45 @@ Use your organization's approved ADC/impersonation flow when required.
 ## Explicitly create the synthetic warehouse
 
 Use a **separate setup identity** with dataset/table creation, load/query job,
-and dataset-access-update permissions. This command makes cloud resources and
-incurs storage/load-related costs; application startup never calls it:
+and dataset-access-update permissions. Configure `DSN_PROJECT_ID`,
+`DSN_DATASET_ID`, and `DSN_BIGQUERY_LOCATION` in `.env`, and authenticate with
+ADC as described above. Vertex AI settings are not required for seeding.
+
+From the project folder, run the existing Python module:
 
 ```powershell
-.\.venv\Scripts\dsn-seed.exe --confirm-create
+.\.venv\Scripts\python.exe -m dsn_agent.seed --confirm-create
 ```
 
+The installed `.\.venv\Scripts\dsn-seed.exe --confirm-create` command is
+equivalent. Both explicitly create cloud resources and can incur costs;
+application startup never runs the seed.
+
 The default period is the latest 24 complete calendar months. An optional
-`--latest-month 2026-10-01` selects a complete historical end month.
+`--latest-month 2026-10-01` selects a complete historical end month:
+
+```powershell
+.\.venv\Scripts\python.exe -m dsn_agent.seed --confirm-create --latest-month 2026-10-01
+```
+
+To call the seed from your own Python script instead:
+
+```python
+from datetime import date
+
+from dsn_agent.config import Settings
+from dsn_agent.seed import seed
+
+if __name__ == "__main__":
+    # Explicit cloud creation; Settings reads the project's .env file.
+    seed(settings=Settings(), latest=date(2026, 10, 1))
+```
+
+Run your script with `.\.venv\Scripts\python.exe .\your_script.py`.
+The direct function call does not use a `--confirm-create` flag: calling
+`seed()` itself performs creation. The same ADC and setup permissions apply.
+The end month must be the first day of a complete past month.
+
 The deterministic fixture contains 200 fictional people, three establishments,
 multiple contracts, cross-establishment assignments, hires, mid-month departures,
 replacement declarations, and remuneration adjustments.
@@ -161,6 +191,20 @@ Templates are ordinary questions, not privileged SQL fragments.
 `config\agent_instruction.txt` holds the model's DSN rules.
 `config\catalog.json` defines the bounded A2UI 1.0 `DSNResult` component; its ID
 must match the registered trusted React implementation.
+
+## Interface theme
+
+The interface follows the [A2UI Playground](https://a2ui.open.bot) layout:
+a compact header with a menu, a centered welcome screen, icon-led prompt tiles,
+and a rounded composer on a pale neutral background. The menu contains
+**Nouvelle conversation** and the synthetic-dataset information. Enter submits
+an analysis; Shift+Enter inserts a newline. Suggestions remain editable and
+never execute automatically.
+
+Theme tokens live in `frontend\src\style.css`; charts read the same variables.
+This is a visual adaptation, not a CopilotKit runtime or
+[playground catalog](https://a2ui.open.bot/catalog.json) integration. The bounded
+DSN catalog, Python ADK, BigQuery guardrails, and A2UI 1.0 rendering are unchanged.
 
 ## Validation
 

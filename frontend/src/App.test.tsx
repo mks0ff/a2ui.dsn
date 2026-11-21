@@ -50,6 +50,40 @@ describe("suggested prompts", () => {
       question: "Paie pour octobre 2026", visualization: "table",
     });
   });
+
+  it("supports multiline questions, Enter submission, and reset from the header menu", async () => {
+    const fetch = vi.fn((url: string, init?: RequestInit) => {
+      if (url === "/api/prompts") return respond([prompt]);
+      if (url === "/api/health") return respond({
+        status: "configured", missing: [],
+        limits: {rows: 10000, chart_points: 5000, bytes_billed: 104857600, sql_attempts: 2},
+      });
+      if (url === "/api/analyze") return respond({
+        text: "Precisez le mois.", status: "clarification", warnings: [], presentation: null,
+      });
+      return respond({status: "ready"});
+    });
+    vi.stubGlobal("fetch", fetch);
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByRole("button", {name: /Evolution de la masse salariale/});
+    const question = screen.getByLabelText("Votre question");
+    await user.type(question, "Effectif");
+    await user.keyboard("{Shift>}{Enter}{/Shift}octobre");
+    expect((question as HTMLTextAreaElement).value).toBe("Effectif\noctobre");
+    expect(fetch.mock.calls.some(([url]) => url === "/api/analyze")).toBe(false);
+    await user.keyboard("{Enter}");
+    await screen.findByText("Precisez le mois.");
+    expect(screen.queryByRole("heading", {level: 1})).toBeNull();
+    expect(JSON.parse(String(fetch.mock.calls.find(([url]) => url === "/api/analyze")?.[1]?.body)))
+      .toEqual({question: "Effectif\noctobre", visualization: "auto"});
+    await user.click(screen.getByLabelText("Menu de l'application"));
+    await user.click(screen.getByRole("button", {name: /Nouvelle conversation/}));
+    await screen.findByRole("heading", {level: 1});
+    expect(screen.queryByText("Precisez le mois.")).toBeNull();
+    expect(fetch.mock.calls.some(([url, init]) => url === "/api/session" && init?.method === "DELETE"))
+      .toBe(true);
+  });
 });
 
 function presentation(visualization: Card["visualization"]): Presentation {
