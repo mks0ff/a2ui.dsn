@@ -97,6 +97,12 @@ The frontend never receives Google Cloud credentials. A2UI messages describe
 layout and data bindings, not arbitrary executable frontend code. Trusted chart
 implementations are registered in the application's A2UI catalog.
 
+An optional private Cloud Run deployment packages the frontend and backend in
+one container; see [DEPLOY.md](..\DEPLOY.md). Google IAM protects invocation,
+and an exact configured HTTPS origin enables hosted request validation and
+Secure conversation cookies. State remains in memory: this deployment does
+not add durable sessions, horizontal scaling, or per-user data authorization.
+
 ## Dataset and business semantics
 
 Use a curated analytical dataset with employee, contract, establishment,

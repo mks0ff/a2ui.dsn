@@ -145,3 +145,58 @@ def test_rejects_nonlocal_write_origin():
     with TestClient(create_app(Settings())) as client:
         response = client.post("/api/session", headers={"origin": "https://unrelated.example"})
         assert response.status_code == 403
+
+
+def test_hosted_origin_secure_session_and_result_access():
+    origin = "https://dsn-example.run.app"
+    settings = Settings(public_origin=origin, _env_file=None)
+    with TestClient(create_app(settings), base_url=origin) as client:
+        response = client.post("/api/session", headers={"origin": origin})
+        assert response.status_code == 200
+        cookie = response.headers["set-cookie"]
+        assert "Secure" in cookie and "HttpOnly" in cookie and "SameSite=strict" in cookie
+        result = make_result(1, owner=client.cookies.get("dsn_session"))
+        client.app.state.store.add(result)
+        assert client.get(f"/api/results/{result.id}").status_code == 200
+        assert client.delete("/api/session", headers={"origin": origin}).status_code == 200
+        assert client.get(f"/api/results/{result.id}").status_code == 401
+
+
+@pytest.mark.parametrize(
+    "origin", ["https://unrelated.run.app", "https://dsn-example.run.app.unrelated.example"]
+)
+def test_hosted_service_rejects_other_origins_and_hosts(origin):
+    app = create_app(Settings(public_origin="https://dsn-example.run.app", _env_file=None))
+    with TestClient(app, base_url="https://dsn-example.run.app") as client:
+        assert client.post("/api/session", headers={"origin": origin}).status_code == 403
+        response = client.get(
+            "/api/health", headers={"host": origin.removeprefix("https://")}
+        )
+        assert response.status_code == 400
+
+
+def test_cloud_proxy_origin_and_local_cookie_behavior():
+    app = create_app(Settings(public_origin="https://dsn-example.run.app", _env_file=None))
+    with TestClient(app, base_url="https://dsn-example.run.app") as client:
+        assert client.post(
+            "/api/session", headers={"origin": "http://localhost:8080"}
+        ).status_code == 200
+    with TestClient(create_app(Settings(_env_file=None))) as client:
+        response = client.post("/api/session", headers={"origin": "http://localhost:8080"})
+        assert response.status_code == 200
+        assert "Secure" not in response.headers["set-cookie"]
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "http://dsn-example.run.app",
+        "https://dsn-example.run.app/api",
+        "https://user:password@dsn-example.run.app",
+        "https://dsn-example.run.app?query=1",
+        "https://dsn-example.run.app#fragment",
+    ],
+)
+def test_rejects_invalid_public_origin_configuration(origin):
+    with pytest.raises(ValueError, match="HTTPS origin"):
+        Settings(public_origin=origin, _env_file=None)

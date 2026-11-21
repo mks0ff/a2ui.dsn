@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, HttpUrl, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -14,11 +14,26 @@ class Settings(BaseSettings):
     bigquery_location: str = ""
     vertex_location: str = ""
     model: str = ""
+    public_origin: HttpUrl | None = None
     prompt_file: Path = ROOT / "config" / "prompts.json"
     max_bytes_billed: int = Field(default=100 * 1024 * 1024, ge=10 * 1024 * 1024)
     max_result_rows: int = Field(default=10_000, ge=1)
     max_chart_points: int = Field(default=5_000, ge=1)
     max_sql_attempts: int = Field(default=2, ge=1, le=2)
+
+    @field_validator("public_origin")
+    @classmethod
+    def validate_public_origin(cls, value: HttpUrl | None) -> HttpUrl | None:
+        if value is not None and (
+            value.scheme != "https"
+            or value.username is not None
+            or value.password is not None
+            or value.path not in ("", "/")
+            or value.query is not None
+            or value.fragment is not None
+        ):
+            raise ValueError("DSN_PUBLIC_ORIGIN must be an HTTPS origin without a path or credentials.")
+        return value
 
     @property
     def dataset(self) -> str:

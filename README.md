@@ -127,14 +127,18 @@ Backend SQL validation is defense in depth, not a replacement for IAM.
 
 ## Run
 
+For an automated **private Cloud Run container deployment**, including build
+checks, IAM setup, and authenticated access, see [DEPLOY.md](DEPLOY.md).
+
 After building the frontend:
 
 ```powershell
 .\.venv\Scripts\python.exe -m uvicorn dsn_agent.api:app --host 127.0.0.1 --port 8000
 ```
 
-Open **http://127.0.0.1:8000**. Bind only to loopback: this demo has local
-conversation cookies, not production authentication.
+Open **http://127.0.0.1:8000**. For local development, bind only to loopback:
+this demo has conversation cookies, not production application authentication.
+The Cloud Run deployment uses Google IAM as its external access boundary.
 
 For frontend development, run the Python server above and, in another terminal:
 

@@ -25,9 +25,16 @@ class AnalysisRequest(BaseModel):
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings()
     app = FastAPI(title="DSN Analytics", version="0.1.0")
-    app.add_middleware(
-        TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "testserver"]
-    )
+    allowed_hosts = ["localhost", "127.0.0.1", "testserver"]
+    allowed_origins = {
+        f"http://{host}:{port}"
+        for host in ("localhost", "127.0.0.1")
+        for port in (5173, 8000, 8080)
+    }
+    if settings.public_origin is not None:
+        allowed_hosts.append(settings.public_origin.host)
+        allowed_origins.add(str(settings.public_origin).rstrip("/"))
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
     store = ResultStore()
     presenter = Presenter()
     app.state.store = store
@@ -36,18 +43,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     runtime_lock = asyncio.Lock()
 
     @app.middleware("http")
-    async def local_origin(request: Request, call_next):
+    async def trusted_origin(request: Request, call_next):
         if request.method not in {"GET", "HEAD", "OPTIONS"}:
             origin = request.headers.get("origin")
-            allowed = {
-                f"http://{host}:{port}"
-                for host in ("localhost", "127.0.0.1")
-                for port in (5173, 8000)
-            }
-            if origin and origin not in allowed:
+            if origin and origin not in allowed_origins:
                 return JSONResponse(
                     status_code=403,
-                    content={"code": "invalid_origin", "message": "Origine locale non autorisee."},
+                    content={"code": "invalid_origin", "message": "Origine non autorisee."},
                 )
         return await call_next(request)
 
@@ -120,7 +122,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if identity not in app.state.owners:
             identity = str(uuid4())
             app.state.owners.add(identity)
-        response.set_cookie("dsn_session", identity, httponly=True, samesite="strict")
+        response.set_cookie(
+            "dsn_session",
+            identity,
+            httponly=True,
+            samesite="strict",
+            secure=settings.public_origin is not None,
+        )
         return {"status": "ready"}
 
     @app.post("/api/analyze")
